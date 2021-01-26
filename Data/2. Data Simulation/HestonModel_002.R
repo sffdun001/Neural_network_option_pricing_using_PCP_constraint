@@ -275,16 +275,6 @@ heston_call_pricer <- function(x, y, model = 'cf_heston', S ,K ,r ,d, t)
 }
 
 
-
- #initial parameters to be optimised
-#kappa, theta, omega, rho,V0
-#other parameters
-#nrow(data)
-#set.seed(1995)
-#ind_rem = seq(from = 2, to  = 193, by = 2)
-##ind = ind[-ind_rem]
-#ind = sample(ind, size = length(ind), replace = F)
-#?base::sample
 ind = which(data$i ==2 & data$DAY_TILL_EXPIRY ==90)
 y = data$CALL_PRICE[ind]
 S = data$AI1_LAST[ind][1]
@@ -321,10 +311,10 @@ y_check_90 = call_price_cm_vectorised(model = 'cf_heston', S = S, K = K ,t = t ,
 
 
 
-sum((y_check_90$call_price - y)^2/length(y))
+#sum((y_check_90$call_price - y)^2/length(y))
 
 #cbind(y_check_90$call_price, y)
-plot((y_check_90$call_price - y)/y)
+#plot((y_check_90$call_price - y)/y)
 
 plot(x = K, y = y, type = 'l', ylab = 'Price', xlab = 'Strike',
      xlim = c(46000, 57000), ylim =  c(0, 4200),lwd = 2)
