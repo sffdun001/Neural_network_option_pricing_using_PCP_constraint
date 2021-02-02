@@ -479,38 +479,7 @@ row.names(t2) = c('AIH8','AIM8','AIU8','AIZ8','AIH9','AIM9','Train','AIU9/Test')
 write.csv(t1, file = paste('mlpSC_market_price_error_', Sys.Date(), '.csv', sep = ''))
 #write.csv(t2, file = paste('black_market_price_error_', Sys.Date(), '.csv', sep = ''))
 
-#Checking proporttion of insample and out-of-sample
-d2 = vector(mode = 'list', length = 7)
-for (quarter in c(1:7)){
-  data <-  data_main[[quarter]]
-  Strikes = sort(unique(data$Strike))
-  d2[[quarter]] = matrix(NA, nrow = length(Strikes), ncol = 3)
-  for (Strike in 1:length(Strikes)){
-    d1 = data[which(data$Strike == Strikes[Strike]),]
-    a1 = d1[which(d1$TimeTillExpiry==max(d1$TimeTillExpiry)),]
-    d2[[quarter]][Strike,1] = a1$TimeTillExpiry
-    d2[[quarter]][Strike,2] = a1$Strike
-    d2[[quarter]][Strike,3] = a1$StockPrice/a1$Strike
-  }
-}
 
-head(d2[[1]])
-Moneyness_table = matrix(NA, nrow = 7, ncol = 4)
-for (quarter in c(1:7)){
-  Moneyness_table[quarter,] =  c( nrow(d2[[quarter]]), 
-                                  length(which(d2[[quarter]][,3]>1.03)),
-                                  length(which((d2[[quarter]][,3]<1.03)&(d2[[quarter]][,3]>0.97))), 
-                                  length(which((d2[[quarter]][,3]<0.97))) 
-  )
-}
-head(data_main1[[1]])
-colSums(Moneyness_table)
-#write.csv(as.data.frame(Moneyness_table), file = "MoneynessTable.csv")
-
-#Identifying columns that have strikes for in-the-money, near-the-money and out-the-money options
-
-
-#length(Moneyness_List[[4]][[3]])
 
 #################################################
 ##Hedging Error 

@@ -2,7 +2,7 @@
 #Market Data Explotation
 
 rm(list = ls(all = TRUE))
-setwd("~/UCT Academic/Masters/Dissertation/Technical Paper/Data")
+setwd("~/UCT Academic/Masters/Dissertation/GitHub/Market Data")
 library(dplyr)
 library(lubridate)
 library(tidyverse)
@@ -23,7 +23,7 @@ names(Data) <- data_names
 GEN = read.csv('BLB_GEN_DATA_Oct.csv', header = T)
 nrow(AIM9)
 nrow(AIM8)
-View(AIM8)
+#View(AIM8)
 
 ncol(AIH8)
 AIH8_Ex = AIH8[,-c(1,19)]
@@ -54,6 +54,13 @@ max(gen_data$PX_LAST.x)
 #Check if data needs to be cleaned
 ######################################################################################################
 
+
+
+
+
+
+
+####################
 
 for( i in 1:length(Data)){
   print(c(min(Data[[i]]$Strike, na.rm = T), 
@@ -145,7 +152,108 @@ colors()[seq(10,70, by = 10)]
 ######################################################################################################
 #Comparing affect of removing NA values
 ######################################################################################################
+Option_suffix = c('H8', "M8", "U8", "Z8", 'H9', "M9", "U9")
 
+
+data_main <- vector(mode = "list", length = 7)
+
+for(i in 1:7){ #not including last 2 for test set
+  if (i ==6|i ==7){
+    quarter_data <- read.csv(paste("AI", Option_suffix[i],
+                                   "_processed_data_2019-10-07.csv",
+                                   sep = ""), header = T)
+  }else{
+    quarter_data <- read.csv(paste("AI", Option_suffix[i],
+                                   "_processed_data_2019-07-22.csv",
+                                   sep = ""), header = T)
+  }
+  
+  
+  
+  quarter_data.clean  = quarter_data%>%filter(!is.na(CALL_PRICE) | !is.na(PUT_PRICE)) #removing prices that have not year been created
+  
+  #setting prices to 0 where there were NA values
+  na_call_ind = which(is.na(quarter_data.clean$CALL_PRICE))
+  na_put_ind = which(is.na(quarter_data.clean$PUT_PRICE))
+  
+  quarter_data.clean$CALL_PRICE[na_call_ind] = 0
+  quarter_data.clean$PUT_PRICE[na_put_ind] = 0
+  
+  
+  quarter_data.clean <- quarter_data.clean%>%
+    select(c("CALL_PRICE", "PUT_PRICE", "Strike", "DAY_TILL_EXPIRY",
+             "AI1_LAST", "TOP40_LAST", "JIBA3M", "TOP40_EQY_DVD_YLD_12M"))
+  names(quarter_data.clean) <- c("CallPrice", "PutPrice", "Strike", "TimeTillExpiry",
+                                 "StockPrice","UnderlyingPrice", "InterestRate", "DivYield")
+  
+  quarter_data.clean$InterestRate = log((1+quarter_data.clean$InterestRate/400)^4)
+  
+  
+  data_main[[i]]= quarter_data.clean
+}
+
+Rows_removing = vector(mode = "list", length =  7)
+
+for (i in 1:7){
+  data = data_main[[i]]
+  Rows_removing[[i]] = matrix(NA, nrow = 2000, ncol = 4)
+  l = 1
+  for (j in 1:nrow(data)){
+    if(data$CallPrice[j] == 0){
+      #print(paste(i, ":",j, sep = ""))
+      if(sum(data$CallPrice[which((data$Strike == data$Strike[j]) & (data$TimeTillExpiry >=data$TimeTillExpiry[j]))]) == 0 ){
+        info1 = c(j, data$StockPrice[j], data$Strike[j], data$TimeTillExpiry[j])
+        Rows_removing[[i]][l,] =  info1
+        print(paste(i, ":",j, sep = ""))
+        l = l+1
+      }
+    }
+    
+  }
+}
+
+
+###############################################################################
+#head(quarter_data.clean)
+#length(na.omit(Rows_removing[[7]][,1]))
+
+#We remove this data point as neven had call price
+data_main[[7]] = data_main[[7]][-na.omit(Rows_removing[[7]][,1]),]
+data_main[[3]] = data_main[[3]][-na.omit(Rows_removing[[3]][,1]),]
+
+
+
+
+
+#######################
+d2 = vector(mode = 'list', length = 7)
+for (quarter in c(1:7)){
+  #quarter = 1
+  data <-  data_main[[quarter]]%>%filter(!is.na(CallPrice) | !is.na(PutPrice))
+  Strikes = sort(unique(data$Strike))
+  d2[[quarter]] = matrix(NA, nrow = length(Strikes), ncol = 3)
+  for (Strike in 1:length(Strikes)){
+    #Strike = 1
+    d1 = data[which(data$Strike == Strikes[Strike]),]
+    a1 = d1[which(d1$TimeTillExpiry==max(d1$TimeTillExpiry)),]
+    d2[[quarter]][Strike,1] = a1$TimeTillExpiry
+    d2[[quarter]][Strike,2] = a1$Strike
+    d2[[quarter]][Strike,3] = a1$StockPrice/a1$Strike
+  }
+}
+
+head(d2[[1]])
+Moneyness_table = matrix(NA, nrow = 7, ncol = 4)
+for (quarter in c(1:7)){
+  Moneyness_table[quarter,] =  c( nrow(d2[[quarter]]), 
+                                  length(which(d2[[quarter]][,3]>1.03)),
+                                  length(which((d2[[quarter]][,3]<1.03)&(d2[[quarter]][,3]>0.97))), 
+                                  length(which((d2[[quarter]][,3]<0.97))) 
+  )
+}
+#head(data_main1[[1]])
+colSums(Moneyness_table)
+write.csv(as.data.frame(Moneyness_table), file = "MoneynessTable.csv")
 
 
 
